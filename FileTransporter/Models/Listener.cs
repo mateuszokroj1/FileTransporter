@@ -11,12 +11,17 @@ namespace FileTransporter.Models
     public class Listener : IDisposable
     {
         #region Constructor
-        public Listener() { }
+        public Listener()
+        {
+            welcomeMessage = $"File Transporter Server v{version}\nWELCOME";
+        }
         #endregion
 
         #region Fields
 
         protected Socket socket;
+        protected readonly Version version = new Version(1,0);
+        protected readonly string welcomeMessage;
 
         #endregion
 
@@ -85,6 +90,8 @@ namespace FileTransporter.Models
         {
             var listener = result.AsyncState as Socket;
             var handler = listener.EndAccept(result);
+
+            handler.Send(Encoding.ASCII.GetBytes(this.welcomeMessage));
             ClientConnectionState state = new ClientConnectionState(handler);
             handler.BeginReceive(
                 state.Buffer,
@@ -113,6 +120,30 @@ namespace FileTransporter.Models
             string msg = Encoding.ASCII.GetString(state.Buffer, 0, Math.Min(10,state.Buffer.Length));
 
             /* Protocol reading section */
+            if(msg.StartsWith("LOGIN")) // Connecting to server
+            {
+
+            }
+            else if(msg.StartsWith("ADD FILE ")) // Start new file transfer
+            {
+
+            }
+            else if(msg.StartsWith("STOP FILE ")) // Abort file transfer
+            {
+
+            }
+            else if(msg.StartsWith("DATA ")) // Set data block of file
+            {
+
+            }
+            else if(msg.StartsWith("LOGOUT ")) // Close connection
+            {
+
+            }
+            else // Invalid message
+            {
+
+            }
         }
 
         public void Close()

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Sockets;
 
 namespace FileTransporter.Models
 {
@@ -12,7 +13,7 @@ namespace FileTransporter.Models
 
     public class ServerEventArgs : EventArgs
     {
-        public Server Server { get; set; }
+        public Listener Server { get; set; }
     }
 
     #endregion

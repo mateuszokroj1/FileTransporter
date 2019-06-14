@@ -13,7 +13,11 @@ namespace FileTransporter.Models
         #region Constructor
         public Listener()
         {
-            welcomeMessage = $"File Transporter Server v{version}\nWELCOME";
+            string msg = $"File Transporter Server v{version}\nWELCOME";
+            this.welcomeMessage = Encoding.ASCII.GetBytes(msg);
+            msg = "INVALID MESSAGE Not recognized";
+            this.invalidMessage = Encoding.ASCII.GetBytes(msg);
+            ConnectedClients = new Client[0];
         }
         #endregion
 
@@ -21,7 +25,8 @@ namespace FileTransporter.Models
 
         protected Socket socket;
         protected readonly Version version = new Version(1,0);
-        protected readonly string welcomeMessage;
+        protected readonly byte[] welcomeMessage;
+        protected readonly byte[] invalidMessage;
 
         #endregion
 
@@ -33,16 +38,18 @@ namespace FileTransporter.Models
         public IPEndPoint Address { get; protected set; }
         public bool IsClosing { get; protected set; } = false;
         public bool IsWorking { get; protected set; } = false;
-        // Connected clients -> Transfering files
+        public Client[] ConnectedClients { get; protected set; }
 
         #endregion
 
         #region Events
 
-        public event ServerEventHandler OnStarting;
-        public event ServerEventHandler OnStarted;
-        public event ServerEventHandler OnClosing;
-        public event ServerEventHandler OnClosed;
+        public event ListenerEventHandler OnStarting;
+        public event ListenerEventHandler OnStarted;
+        public event ClosingEventHandler OnClosing;
+        public event ListenerEventHandler OnClosed;
+        public event ClientConnectionEventHandler OnClientConnection;
+        public event TransferRequestEventHandler OnTransferRequest;
 
         #endregion
 
@@ -91,7 +98,7 @@ namespace FileTransporter.Models
             var listener = result.AsyncState as Socket;
             var handler = listener.EndAccept(result);
 
-            handler.Send(Encoding.ASCII.GetBytes(this.welcomeMessage));
+            handler.Send(this.welcomeMessage);
             ClientConnectionState state = new ClientConnectionState(handler);
             handler.BeginReceive(
                 state.Buffer,
@@ -142,7 +149,8 @@ namespace FileTransporter.Models
             }
             else // Invalid message
             {
-
+                state.Buffer = null;
+                state.Socket.Send();
             }
         }
 

@@ -15,9 +15,10 @@ namespace FileTransporter.Models
         {
             string msg = $"File Transporter Server v{version}\nWELCOME";
             this.welcomeMessage = Encoding.ASCII.GetBytes(msg);
-            msg = "INVALID MESSAGE Not recognized";
+            msg = "INVALID MESSAGE";
             this.invalidMessage = Encoding.ASCII.GetBytes(msg);
             ConnectedClients = new Client[0];
+            GeneratePassword = DefaultPasswordGenerator;
         }
         #endregion
 
@@ -39,6 +40,8 @@ namespace FileTransporter.Models
         public bool IsClosing { get; protected set; } = false;
         public bool IsWorking { get; protected set; } = false;
         public Client[] ConnectedClients { get; protected set; }
+        public Func<string> GeneratePassword { get; set; }
+        public string CurrentPassword { get; protected set; }
 
         #endregion
 
@@ -86,6 +89,8 @@ namespace FileTransporter.Models
             this.socket.Bind(endpoint);
             this.socket.Listen(50);
 
+            CurrentPassword = GeneratePassword();
+
             new Thread(()=>
             {
                 while(!IsClosing)
@@ -127,19 +132,32 @@ namespace FileTransporter.Models
             string msg = Encoding.ASCII.GetString(state.Buffer, 0, Math.Min(10,state.Buffer.Length));
 
             /* Protocol reading section */
-            if(msg.StartsWith("LOGIN")) // Connecting to server
+            if(msg.StartsWith("LOGIN ")) // Connecting to server
+            {
+                msg = Encoding.ASCII.GetString(state.Buffer, 6, Math.Min(300, state.Buffer.Length));
+                string[] arguments = msg.Split(' ');
+                if(arguments.Length != 4 || arguments[0] != "HOST" || arguments[2] != "PASS")
+                {
+                    state.Buffer = null;
+                    state.Socket.Send(this.invalidMessage);
+                }
+                string host = arguments[1];
+                string pass = arguments[3];
+                if(pass != CurrentPassword)
+                {
+
+                }
+                //OnClientConnection(this, new ClientConnectionEventArgs { });
+            }
+            else if(msg.StartsWith("FILE ADD ")) // Start new file transfer
             {
 
             }
-            else if(msg.StartsWith("ADD FILE ")) // Start new file transfer
+            else if(msg.StartsWith("FILE STOP ")) // Abort file transfer
             {
 
             }
-            else if(msg.StartsWith("STOP FILE ")) // Abort file transfer
-            {
-
-            }
-            else if(msg.StartsWith("DATA ")) // Set data block of file
+            else if(msg.StartsWith("FILE DATA ")) // Set data block of file
             {
 
             }
@@ -150,8 +168,21 @@ namespace FileTransporter.Models
             else // Invalid message
             {
                 state.Buffer = null;
-                state.Socket.Send();
+                state.Socket.Send(this.invalidMessage);
             }
+        }
+
+        public string DefaultPasswordGenerator()
+        {
+            char[] chars = new[] { '0','1','2','3','4','5','6','7','8','9',
+                'A','B','C','D','E','F','G','H','I','J','K','L','M','N',
+                'a','b','c','d','e','f','g','h','i','j','k','l','m','n'
+            };
+            string ret = string.Empty;
+            Random rand = new Random(3);
+            for(uint i = 1; i <= 8; i++)
+                ret += chars[rand.Next(0, 37)];
+            return ret;
         }
 
         public void Close()

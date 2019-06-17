@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -51,8 +52,10 @@ namespace FileTransporter.Models
         public event ListenerEventHandler OnStarted;
         public event ClosingEventHandler OnClosing;
         public event ListenerEventHandler OnClosed;
-        public event ClientConnectionEventHandler OnClientConnection;
+        public event ClientConnectedEventHandler OnClientConnected;
+        public event ClientDisconnectedEventHandler OnClientDisconnected;
         public event TransferRequestEventHandler OnTransferRequest;
+        public event TimeoutEventHandler OnConnectionTimeout;
 
         #endregion
 
@@ -64,6 +67,9 @@ namespace FileTransporter.Models
                 throw new InvalidOperationException("Listener must be closed before executing Start method.");
             if(address is null || port == 0)
                 throw new ArgumentNullException();
+
+            OnStarting?.Invoke(this, new ListenerEventArgs { Server = this, UtcTime = DateTime.UtcNow });
+
             // IP Check
             if(
                 NetworkInterface
@@ -91,6 +97,11 @@ namespace FileTransporter.Models
 
             CurrentPassword = GeneratePassword();
 
+            OnStarted.Invoke(
+                this,
+                new ListenerEventArgs { Server = this, UtcTime = DateTime.UtcNow }
+            );
+
             new Thread(()=>
             {
                 while(!IsClosing)
@@ -104,6 +115,7 @@ namespace FileTransporter.Models
             var handler = listener.EndAccept(result);
 
             handler.Send(this.welcomeMessage);
+            
             ClientConnectionState state = new ClientConnectionState(handler);
             handler.BeginReceive(
                 state.Buffer,
@@ -131,8 +143,10 @@ namespace FileTransporter.Models
                 throw new InvalidOperationException("ERROR DECODE Buffer length is invalid");
             string msg = Encoding.ASCII.GetString(state.Buffer, 0, Math.Min(10,state.Buffer.Length));
 
+            IPAddress ip = (state.Socket.RemoteEndPoint as IPEndPoint).Address ?? null;
+
             /* Protocol reading section */
-            if(msg.StartsWith("LOGIN ")) // Connecting to server
+            if (msg.StartsWith("LOGIN ")) // Connecting to server
             {
                 msg = Encoding.ASCII.GetString(state.Buffer, 6, Math.Min(300, state.Buffer.Length));
                 string[] arguments = msg.Split(' ');
@@ -143,25 +157,87 @@ namespace FileTransporter.Models
                 }
                 string host = arguments[1];
                 string pass = arguments[3];
-                if(pass != CurrentPassword)
+                if(pass.Length != 8 || pass != CurrentPassword)
                 {
-
+                    state.Buffer = null;
+                    state.Socket.Send(Encoding.ASCII.GetBytes("INVALID PASS"));
                 }
-                //OnClientConnection(this, new ClientConnectionEventArgs { });
+                CurrentPassword = GeneratePassword();
+
+                ClientConnectedEventArgs e = new ClientConnectedEventArgs();
+                e.Server = this;
+                e.UtcTime = DateTime.UtcNow;
+                state.Password = e.Password = pass;
+                e.Hostname = host;
+                state.ClientId = e.ClientId = Guid.NewGuid();
+                e.IP = ip;
+                OnClientConnected?.Invoke(this, e);
+
             }
-            else if(msg.StartsWith("FILE ADD ")) // Start new file transfer
+            else if(msg.StartsWith("FILE ADD\0")) // Start new file transfer
+            {
+                ReadonlyStream stream = new ReadonlyStream(state.Buffer);
+                stream.Position = 9;
+                using (BinaryReader reader = new BinaryReader(stream))
+                {
+                    try
+                    {
+                        Guid clientid = new Guid(reader.ReadBytes(16));
+
+                        Client client = ConnectedClients.Where(item => item.Id == clientid && item.IP == ip).First();
+                        if (client is null)
+                        {
+                            state.Buffer = null;
+                            state.Socket.Send(Encoding.ASCII.GetBytes("ABORTED"));
+                        }
+
+                        if (reader.ReadByte() != 0)
+                        {
+                            state.Buffer = null;
+                            state.Socket.Send(Encoding.ASCII.GetBytes("INVALID MESSAGE"));
+                        }
+
+                        string filename = string.Empty;
+                        char c;
+                        while ((c = reader.ReadChar()) != 0)
+                            filename += c;
+
+                        ulong size = reader.ReadUInt64();
+                        TransferRequestEventArgs e = new TransferRequestEventArgs(); ;
+                        e.Client = client;
+                        e.Filename = filename;
+                        e.Id = Guid.NewGuid();
+                        e.Server = this;
+                        e.Size = size;
+                        e.UtcTime = DateTime.UtcNow;
+                        OnTransferRequest?.Invoke(this, e);
+                        e.Server = this;
+                        if(!e.IsAccepted || e.IsCanceled)
+                        {
+
+                        }
+                        if(e.Stream is null || !e.Stream.CanWrite)
+                        {
+
+                        }
+
+                    }
+                    catch(EndOfStreamException)
+                    {
+                        state.Buffer = null;
+                        state.Socket.Send(Encoding.ASCII.GetBytes("INVALID MESSAGE"));
+                    }
+                }
+            }
+            else if(msg.StartsWith("FILE STOP\0")) // Abort file transfer
             {
 
             }
-            else if(msg.StartsWith("FILE STOP ")) // Abort file transfer
+            else if(msg.StartsWith("FILE DATA\0")) // Set data block of file
             {
 
             }
-            else if(msg.StartsWith("FILE DATA ")) // Set data block of file
-            {
-
-            }
-            else if(msg.StartsWith("LOGOUT ")) // Close connection
+            else if(msg.StartsWith("LOGOUT\0")) // Close connection
             {
 
             }

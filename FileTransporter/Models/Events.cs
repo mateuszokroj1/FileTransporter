@@ -9,7 +9,8 @@ namespace FileTransporter.Models
 
     public delegate void ListenerEventHandler(object sender, ListenerEventArgs e);
     public delegate void TimeoutEventHandler(object sender, TimeoutEventArgs e);
-    public delegate void ClientConnectionEventHandler(object sender, ClientConnectionEventArgs e);
+    public delegate void ClientConnectedEventHandler(object sender, ClientConnectedEventArgs e);
+    public delegate void ClientDisconnectedEventHandler(object sender, ClientDisconnectedEventArgs e);
     public delegate void TransferRequestEventHandler(object sender, TransferRequestEventArgs e);
     public delegate void ClosingEventHandler(object sender, ClosingEventArgs e);
 
@@ -20,6 +21,7 @@ namespace FileTransporter.Models
     public class ListenerEventArgs : EventArgs
     {
         public Listener Server { get; set; }
+        public DateTime UtcTime { get; set; }
     }
 
     public class TimeoutEventArgs : ListenerEventArgs
@@ -27,30 +29,41 @@ namespace FileTransporter.Models
         public uint MaxTime { get; set; }
     }
 
-    public class ClientConnectionEventArgs : ListenerEventArgs
+    public class ClientConnectedEventArgs : ListenerEventArgs
     {
         public Guid ClientId { get; set; }
         public IPAddress IP { get; set; }
         public string Password { get; set; }
         public string Hostname { get; set; }
-        protected bool IsAccepted { get; set; } = false;
-        protected bool IsCanceled { get; set; } = false;
-        protected bool IsTimeout { get; set; } = false;
-        public event TimeoutEventHandler OnTimeout;
-        public void IsValid() => IsAccepted = true;
-        public void IsInvalid() => IsCanceled = true;
+    }
+
+    public class ClientDisconnectedEventArgs : ListenerEventArgs
+    {
+        public Guid ClientId { get; set; }
+        public IPAddress IP { get; set; }
     }
 
     public class TransferRequestEventArgs : ListenerEventArgs
     {
         public Client Client { get; set; }
         public string Filename { get; set; }
-        public uint Size { get; set; }
+        public ulong Size { get; set; }
         public Guid Id { get; set; }
-        protected bool IsAccepted { get; set; } = false;
-        protected Stream Stream { get; set; }
-        protected bool IsCanceled { get; set; } = false;
-        protected bool IsTimeout { get; set; } = false;
+        public bool IsAccepted { get; protected set; } = false;
+        public Stream Stream { get; set; }
+        public Listener Server { get; set; }
+        public bool IsCanceled { get; protected set; } = false;
+        public void IsTimeout()
+        {
+            TimeoutEventArgs e = new TimeoutEventArgs
+            {
+                Server = Server,
+                MaxTime =,
+                UtcTime = DateTime.UtcNow
+            };
+
+            OnTimeout?.BeginInvoke(this, e, null, null);
+        }
         public event TimeoutEventHandler OnTimeout;
         public void Accept(Stream writableStream)
         {
@@ -58,8 +71,6 @@ namespace FileTransporter.Models
                 throw new ArgumentNullException();
             if(!writableStream.CanWrite)
                 throw new IOException("Stream is not writable.");
-            if(writableStream.Length < Size)
-                throw new IOException("Stream is too small.");
             Stream = writableStream;
             IsAccepted = true;
         }

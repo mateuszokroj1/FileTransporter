@@ -23,7 +23,7 @@ namespace FileTransporter.Models
         public byte[] Buffer { get; set; }
     }
 
-    public class Client
+    public class ClientInfo
     {
         public Guid Id { get; set; }
         public string Password { get; set; }

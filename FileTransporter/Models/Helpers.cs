@@ -40,6 +40,10 @@ namespace FileTransporter.Models
         public string Filename => Path.GetFileName(LocalPath);
         public uint Size { get; set; }
         public Stream Stream { get; set; }
+        /// <summary>
+        /// From 0 to 1.
+        /// </summary>
+        public float Progress { get; set; }
     }
 
     

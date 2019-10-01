@@ -1,8 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>FileTransporter.Models</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>FileTransporter.Models</PackageId>
+    <Authors>Mateusz Okrój</Authors>
+    <Company>Mateusz Okrój</Company>
+    <Product>File Transporter</Product>
+    <PackageLicenseExpression>GNU GPL 2.0</PackageLicenseExpression>
+    <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
 </Project>

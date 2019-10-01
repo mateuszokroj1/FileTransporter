@@ -7,11 +7,11 @@ using Android.App;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Client for Android")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("File Transporter - Android Version")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("File Transporter")]
-[assembly: AssemblyCopyright("Copyright © Mateusz Okrój")]
+[assembly: AssemblyCopyright("Copyright © Mateusz Okrój GNU GPL 2.0")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("en-US")]
 [assembly: ComVisible(false)]

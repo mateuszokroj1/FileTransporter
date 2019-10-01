@@ -9,11 +9,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Servers", "Servers", "{2B34
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Clients", "Clients", "{AF3FFCAE-E01F-4760-9CF5-3E56D768C45E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server for Windows", "Servers\Server for Windows\Server for Windows.csproj", "{310CDB70-FE1F-470C-89D3-DD16F64AF7D0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Server for Windows", "Servers\Server for Windows\Server for Windows.csproj", "{310CDB70-FE1F-470C-89D3-DD16F64AF7D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client for Windows", "Clients\Client for Windows\Client for Windows.csproj", "{CA2510DE-A3F1-4DDA-A78F-DE7D757C74C0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client for Windows", "Clients\Client for Windows\Client for Windows.csproj", "{CA2510DE-A3F1-4DDA-A78F-DE7D757C74C0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client for Android", "Clients\Client for Android\Client for Android.csproj", "{406EDFA4-DE72-429A-B078-E1A40A46662D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{B405A5A2-3E4B-411B-8801-78A52A8FB13C}"
+	ProjectSection(SolutionItems) = preProject
+		C:\Users\mateu\Desktop\File Transporter Protocol Specification.pdf = C:\Users\mateu\Desktop\File Transporter Protocol Specification.pdf
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

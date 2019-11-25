@@ -97,7 +97,7 @@ namespace FileTransporter.Models
 
             CurrentPassword = GeneratePassword();
 
-            OnStarted.Invoke(
+            OnStarted?.Invoke(
                 this,
                 new ListenerEventArgs { Server = this, UtcTime = DateTime.UtcNow }
             );
@@ -134,10 +134,15 @@ namespace FileTransporter.Models
             int readed = handler.EndReceive(result);
             if(readed != state.Buffer.Length)
                 throw new InvalidOperationException("ERROR READ Buffer length is invalid");
-            DecodeMessage(state);
+
+            /* Split messages by detecting preambule */
+            byte[] input = state.Buffer;
+            byte[][] messages = MessageSplit(input);
+            foreach (byte[] msg in messages)
+                DecodeMessage(msg, state);
         }
 
-        protected void DecodeMessage(ClientConnectionState state)
+        protected void DecodeMessage(byte[] message, ClientConnectionState state)
         {
             if(state.Buffer.Length < 2)
                 throw new InvalidOperationException("ERROR DECODE Buffer length is invalid");
@@ -248,7 +253,7 @@ namespace FileTransporter.Models
             }
         }
 
-        public string DefaultPasswordGenerator()
+        internal static string DefaultPasswordGenerator()
         {
             char[] chars = new[] { '0','1','2','3','4','5','6','7','8','9',
                 'A','B','C','D','E','F','G','H','I','J','K','L','M','N',
@@ -269,6 +274,11 @@ namespace FileTransporter.Models
         }
 
         public void Dispose() => Close();
+
+        public static byte[][] MessageSplit()
+        {
+
+        }
 
         #endregion
     }

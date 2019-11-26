@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -275,9 +276,73 @@ namespace FileTransporter.Models
 
         public void Dispose() => Close();
 
-        public static byte[][] MessageSplit()
+        public static byte[][] MessageSplit(byte[] input)
         {
+            if (input == null || input.Length < 64)
+                throw new ArgumentException("Input is null or too small.");
+            uint i = 0, length = (uint)input.Length;
+            List<byte[]> messages = new List<byte[]>();
+            byte[] subarray = null;
 
+            while(i < length)
+            { 
+            First_preambule:
+                for (uint j = 1; j < 32; j++)
+                {
+                    if (i + j > length)
+                        return null;
+                    if (input[i + j - 1] != 0x0)
+                    {
+                        i++;
+                        goto First_preambule;
+                    }
+                }
+                for(uint j = 1; j < 32; j++)
+                {
+                    if (i + j > length)
+                        return null;
+                    if(input[i+j-1] != 0xAA)
+                    {
+                        i++;
+                        goto First_preambule;
+                    }
+                }
+                uint startOfMessage = i;
+                Next_preambule:
+                for (uint j = 1; j < 32; j++)
+                {
+                    if (i + j > length)
+                        return null;
+                    if (input[i + j - 1] != 0x0)
+                    {
+                        i++;
+                        goto Next_preambule;
+                    }
+                }
+                for (uint j = 1; j < 32; j++)
+                {
+                    if (i + j > length)
+                        return null;
+                    if (input[i + j - 1] != 0xAA)
+                    {
+                        i++;
+                        goto Next_preambule;
+                    }
+                }
+                if (i - 64 > startOfMessage)
+                {
+                    subarray = new byte[i-64-startOfMessage];
+                    Array.Copy(input, startOfMessage, subarray, 0, subarray.Length);
+                    messages.Add(subarray);
+                    goto First_preambule;
+                }
+            Last_message:
+                subarray = new byte[length-1 - startOfMessage];
+                Array.Copy(input, startOfMessage, subarray, 0, subarray.Length);
+                messages.Add(subarray);
+                return messages.ToArray();
+            }
+            return messages.ToArray();
         }
 
         #endregion

@@ -138,24 +138,24 @@ namespace FileTransporter.Models
 
             /* Split messages by detecting preambule */
             byte[] input = state.Buffer;
-            byte[][] messages = MessageSplit(input);
+            byte[][] messages = MessageSplitter.Split(input);
             foreach (byte[] msg in messages)
                 DecodeMessage(msg, state);
         }
 
         protected void DecodeMessage(byte[] message, ClientConnectionState state)
         {
-            if(state.Buffer.Length < 2)
-                throw new InvalidOperationException("ERROR DECODE Buffer length is invalid");
-            string msg = Encoding.ASCII.GetString(state.Buffer, 0, Math.Min(10,state.Buffer.Length));
+            if(message.Length < 2)
+                throw new InvalidOperationException("ERROR DECODE Message length is too short");
+            string msg = Encoding.ASCII.GetString(message, 0, Math.Min(10,message.Length));
 
-            IPAddress ip = (state.Socket.RemoteEndPoint as IPEndPoint).Address ?? null;
+            IPAddress ip = (state?.Socket?.RemoteEndPoint as IPEndPoint)?.Address ?? IPAddress.None;
 
             /* Protocol reading section */
             if (msg.StartsWith("LOGIN ")) // Connecting to server
             {
-                msg = Encoding.ASCII.GetString(state.Buffer, 6, Math.Min(300, state.Buffer.Length));
-                string[] arguments = msg.Split(' ');
+                msg = Encoding.ASCII.GetString(message, 6, Math.Min(300, message.Length));
+                string[] arguments = msg.
                 if(arguments.Length != 4 || arguments[0] != "HOST" || arguments[2] != "PASS")
                 {
                     state.Buffer = null;
@@ -275,75 +275,6 @@ namespace FileTransporter.Models
         }
 
         public void Dispose() => Close();
-
-        public static byte[][] MessageSplit(byte[] input)
-        {
-            if (input == null || input.Length < 64)
-                throw new ArgumentException("Input is null or too small.");
-            uint i = 0, length = (uint)input.Length;
-            List<byte[]> messages = new List<byte[]>();
-            byte[] subarray = null;
-
-            while(i < length)
-            { 
-            First_preambule:
-                for (uint j = 1; j < 32; j++)
-                {
-                    if (i + j > length)
-                        return null;
-                    if (input[i + j - 1] != 0x0)
-                    {
-                        i++;
-                        goto First_preambule;
-                    }
-                }
-                for(uint j = 1; j < 32; j++)
-                {
-                    if (i + j > length)
-                        return null;
-                    if(input[i+j-1] != 0xAA)
-                    {
-                        i++;
-                        goto First_preambule;
-                    }
-                }
-                uint startOfMessage = i;
-                Next_preambule:
-                for (uint j = 1; j < 32; j++)
-                {
-                    if (i + j > length)
-                        return null;
-                    if (input[i + j - 1] != 0x0)
-                    {
-                        i++;
-                        goto Next_preambule;
-                    }
-                }
-                for (uint j = 1; j < 32; j++)
-                {
-                    if (i + j > length)
-                        return null;
-                    if (input[i + j - 1] != 0xAA)
-                    {
-                        i++;
-                        goto Next_preambule;
-                    }
-                }
-                if (i - 64 > startOfMessage)
-                {
-                    subarray = new byte[i-64-startOfMessage];
-                    Array.Copy(input, startOfMessage, subarray, 0, subarray.Length);
-                    messages.Add(subarray);
-                    goto First_preambule;
-                }
-            Last_message:
-                subarray = new byte[length-1 - startOfMessage];
-                Array.Copy(input, startOfMessage, subarray, 0, subarray.Length);
-                messages.Add(subarray);
-                return messages.ToArray();
-            }
-            return messages.ToArray();
-        }
 
         #endregion
     }

@@ -1,61 +1,54 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace FileTransporter.Models
 {
     public static class MessageSplitter
     {
-        public static byte[][] Split(byte[] inputToSplit)
+        public const uint MessageLength = 64;
+        public static IEnumerable<byte[]> Split(byte[] inputToSplit)
         {
-            if (inputToSplit == null || inputToSplit.Length < 64)
+            if (inputToSplit == null || inputToSplit.Length < MessageLength)
                 throw new ArgumentException("Input is null or too small.");
-            uint i = 0, length = (uint)inputToSplit.Length;
+            uint index = 0, length = (uint)inputToSplit.Length;
             List<byte[]> messages = new List<byte[]>();
             byte[] subarray = null;
 
-            while (i < length)
+            int startOfMessage = -1;
+            int endOfMessage = -1;
+            while (index < length)
             {
+                // Search start preambule
                 try
                 {
-                    while (!CheckIsEqualToPreambule(ref inputToSplit, i))
-                        i++;
+                    while (!CheckIsEqualToPreambule(ref inputToSplit, index))
+                        index++;
                 }
-                catch(IndexOutOfRangeException)
-                { goto End; }
-                
-                uint startOfMessage = i;
-                while (true)
-                {
-                    try
-                    {
-                        while (!CheckIsEqualToPreambule(ref inputToSplit, i))
-                            i++;
-                    }
-                    catch (IndexOutOfRangeException)
-                    { goto End; }
+                catch (IndexOutOfRangeException)
+                { return messages; }
 
-                    if (i - 64 > startOfMessage)
-                    {
-                        subarray = new byte[i - 64 - startOfMessage];
-                        Array.Copy(inputToSplit, startOfMessage, subarray, 0, subarray.Length);
-                        messages.Add(subarray);
-                        continue;
-                    }
-                    break; // Normal is only one run
+                index += MessageLength;
+
+                startOfMessage = (int)index;
+
+                // Search next preambule or end of array
+                try
+                {
+                    while (!CheckIsEqualToPreambule(ref inputToSplit, index))
+                        index++;
+
+                    endOfMessage = (int)(index - 1);
                 }
-                
-                // Last message
-                subarray = new byte[length - 1 - startOfMessage];
-                if (subarray.Length == 0)
-                    goto End;
+                catch (IndexOutOfRangeException)
+                { endOfMessage = (int)length; }
+
+                subarray = new byte[endOfMessage - startOfMessage];
                 Array.Copy(inputToSplit, startOfMessage, subarray, 0, subarray.Length);
+
                 messages.Add(subarray);
-                goto End;
             }
 
-            End:
-            return messages.ToArray();
+            return messages;
         }
 
         public static bool CheckIsEqualToPreambule(ref byte[] input, uint index)
@@ -68,18 +61,18 @@ namespace FileTransporter.Models
 
             uint length = (uint)input.Length;
 
-            for (uint j = 1; j <= 32; j++)
+            for (uint j = 0; j < 32; j++)
             {
-                if (index + j > length)
+                if (index + j >= length)
                     throw new IndexOutOfRangeException();
-                if (input[index + j - 1] != 0x0)
+                if (input[index + j] != 0x0)
                     return false;
             }
-            for (uint j = 1; j <= 32; j++)
+            for (uint j = 0; j < 32; j++)
             {
-                if (index + j > length)
+                if (index + 32 + j >= length)
                     throw new IndexOutOfRangeException();
-                if (input[index + j - 1] != 0xAA)
+                if (input[index + j + 32] != 0xAA)
                     return false;
             }
 

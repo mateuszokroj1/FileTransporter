@@ -27,6 +27,7 @@ namespace FileTransporter.Models
         public bool IsConnected { get; protected set; }
         public bool IsWorking { get; protected set; }
         public FileInfo[] FileTransfers { get; protected set; }
+        public DateTime LastAction { get; protected set; } = DateTime.UtcNow;
         #endregion
 
         #region Methods
@@ -46,6 +47,9 @@ namespace FileTransporter.Models
         {
 
         }
+
+        internal void UpdateDatetime() => LastAction = DateTime.UtcNow;\
+
         public void Dispose()
         {
             if(IsConnected) Disconnect();

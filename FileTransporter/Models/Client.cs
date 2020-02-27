@@ -6,7 +6,7 @@ using System.Text;
 
 namespace FileTransporter.Models
 {
-    public class Client : IDisposable
+    public class Client : IEquatable<Client>, IDisposable
     {
         #region Constructor
         public Client()
@@ -23,6 +23,7 @@ namespace FileTransporter.Models
 
         #region Properties
         public Guid Id { get; protected set; }
+        public string Hostname { get; protected set; }
         public IPEndPoint Address { get; protected set; }
         public bool IsConnected { get; protected set; }
         public bool IsWorking { get; protected set; }
@@ -48,12 +49,16 @@ namespace FileTransporter.Models
 
         }
 
-        internal void UpdateDatetime() => LastAction = DateTime.UtcNow;\
+        internal void UpdateDatetime() => LastAction = DateTime.UtcNow;
 
         public void Dispose()
         {
-            if(IsConnected) Disconnect();
+            if(IsConnected)
+                Disconnect();
         }
+
+        public bool Equals(Client other) =>
+            other.Id.Equals(Id) && other.Hostname.Equals(Hostname) && other.Address.Equals(Address);
         #endregion
     }
 }

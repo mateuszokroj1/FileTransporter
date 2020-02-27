@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 namespace FileTransporter.Models
 {
-    internal abstract class CollectionBase<T> : ICollection<T>
+    internal abstract class CollectionBase<T> : ICollection<T> where T : IEquatable<T>
     {
         #region Constructor
         public CollectionBase()
@@ -22,29 +22,31 @@ namespace FileTransporter.Models
         public int Count => this.values.Count;
 
         public bool IsReadOnly => true;
+
+        public T this[int index] => this.values[index];
         #endregion
 
         #region Methods
         public virtual void Add(T item) => throw new NotImplementedException();
         public virtual void Clear() => throw new NotImplementedException();
-        public virtual bool Contains(T item) => throw new NotImplementedException();
-        public void CopyTo(T[] array, int arrayIndex) => this.values.CopyTo(array, arrayIndex);
-        public IEnumerator<T> GetEnumerator() => this.values.GetEnumerator();
+        public bool Contains(T item) =>
+            this.values.Where(value => value.Equals(item)).Count() == 1;
+        public void CopyTo(T[] array, int arrayIndex) =>
+            this.values.CopyTo(array, arrayIndex);
         public virtual bool Remove(T item) => throw new NotImplementedException();
+        public IEnumerator<T> GetEnumerator() => this.values.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => this.values.GetEnumerator();
         #endregion
 
-        #region Events & Delegates
-        public delegate void ChangedValueEventHandler(object sender, ChangedValueEventArgs e);
-
-        public event ChangedValueEventHandler OnValueAdd;
-        public event ChangedValueEventHandler OnValueRemove;
-        public event ChangedValueEventHandler OnCollectionCleared;
+        #region Events
+        public event ChangedValueEventHandler<T> OnAdded;
+        public event ChangedValueEventHandler<T> OnRemoved;
         #endregion
     }
 
-    public class ChangedValueEventArgs : EventArgs
+    public delegate void ChangedValueEventHandler<Tvalue>(object sender, ChangedValueEventArgs<Tvalue> e) where Tvalue : IEquatable<Tvalue>;
+    public class ChangedValueEventArgs<T> : EventArgs
     {
-
+        public IEnumerable<T> ChangedValues { get; set; }
     }
 }

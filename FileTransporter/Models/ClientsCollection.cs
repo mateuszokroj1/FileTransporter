@@ -1,35 +1,27 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Net;
 
 namespace FileTransporter.Models
 {
-    internal class ClientsCollection : ICollection<Client>
+    internal class ClientsCollection : CollectionBase<Client>
     {
-        #region Constructor
-            public ClientsCollection()
-            {
-                this.clients = new List<Client>();
-            }
-        #endregion
+        internal new void Add(Client item)
+        {
+            if (item == null || item.Id == null || item.Hostname == null || item.Address == null)
+                throw new ArgumentNullException();
 
-        #region Fields
-        protected List<Client> clients;
-        #endregion
+            this.values.Add(item);
+        }
 
-        #region Properties
-        public int Count => throw new NotImplementedException();
+        [Obsolete]
+        internal new void Clear() => throw new NotImplementedException();
 
-        public bool IsReadOnly => throw new NotImplementedException();
-        #endregion
-        public void Add(Client item) => throw new NotImplementedException();
-        public void Clear() => throw new NotImplementedException();
-        public bool Contains(Client item) => throw new NotImplementedException();
-        public void CopyTo(Client[] array, int arrayIndex) => throw new NotImplementedException();
-        public IEnumerator<Client> GetEnumerator() => throw new NotImplementedException();
-        public bool Remove(Client item) => throw new NotImplementedException();
-        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
-        public delegate 
+        internal new bool Remove(Client item)
+        {
+
+        }
     }
 }
